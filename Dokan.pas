@@ -1,7 +1,7 @@
 (*
   Dokan API wrapper for Delphi based on Release 2.2.0.1000
   https://github.com/dokan-dev/dokany/releases/tag/v2.2.0.1000
-  Copyright (C) 2019 - 2024 Sven Harazim
+  Copyright (C) 2019 - 2026 Sven Harazim
 
   Dokan : user-mode file system library for Windows
 
@@ -44,7 +44,7 @@ const
   DokanLibrary = 'dokan2.dll';
 
   //The current Dokan version (200 means ver 2.0.0).
-  DOKAN_VERSION = 220;
+  DOKAN_VERSION = 231;
   //Minimum Dokan version (ver 2.0.0) accepted
   DOKAN_MINIMUM_COMPATIBLE_VERSION = 200;
 
@@ -120,7 +120,7 @@ type
     ProcessingContext : PVOID;
     ProcessId: ULONG;
     IsDirectory: ByteBool;
-    DeleteOnClose: ByteBool;
+    DeletePending: ByteBool;
     PagingIo: ByteBool;
     SynchronousIo: ByteBool;
     Nocache: ByteBool;

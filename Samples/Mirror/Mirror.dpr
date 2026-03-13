@@ -1,7 +1,7 @@
 (*
-  Dokan API wrapper for Delphi based on Release 2.2.0.1000
-  https://github.com/dokan-dev/dokany/releases/tag/v2.2.0.1000
-  Copyright (C) 2019 - 2024 Sven Harazim
+  Dokan API wrapper for Delphi based on Release 2.3.1.1000
+  https://github.com/dokan-dev/dokany/releases/tag/v2.3.1.1000
+  Copyright (C) 2019 - 2026 Sven Harazim
 
   Dokan : user-mode file system library for Windows
 
@@ -576,6 +576,10 @@ begin
       Result := STATUS_CANNOT_DELETE; Exit;
     end;
 
+    // Remove FILE_FLAG_DELETE_ON_CLOSE to avoid CloseHandle triggering a deletion.
+    // The Driver will inform us through DeletePending when to delete it.
+    fileAttributesAndFlags := fileAttributesAndFlags and (not FILE_FLAG_DELETE_ON_CLOSE);
+
     // Truncate should always be used with write access
     if (creationDisposition = TRUNCATE_EXISTING) then
       genericDesiredAccess := genericDesiredAccess or GENERIC_WRITE;
@@ -667,10 +671,8 @@ begin
     DbgPrint('Cleanup: %s\n\tinvalid handle\n\n', [filePath]);
   end;
 
-  if (DokanFileInfo^.DeleteOnClose) then begin
-    // Should already be deleted by CloseHandle
-    // if open with FILE_FLAG_DELETE_ON_CLOSE
-    DbgPrint('\tDeleteOnClose\n');
+  if (DokanFileInfo^.DeletePending) then begin
+    DbgPrint('\tDeletePending\n');
     if (DokanFileInfo^.IsDirectory) then begin
       DbgPrint('  DeleteDirectory ');
       if (not RemoveDirectoryW(filePath)) then begin
@@ -1029,7 +1031,7 @@ begin
   handle := THandle(DokanFileInfo^.Context);
 
   GetFilePath(filePath, DOKAN_MAX_PATH, FileName);
-  DbgPrint('DeleteFile %s - %d\n', [filePath, Byte(DokanFileInfo^.DeleteOnClose)]);
+  DbgPrint('DeleteFile %s - %d\n', [filePath, Byte(DokanFileInfo^.DeletePending)]);
 
   dwAttrib := GetFileAttributesW(filePath);
 
@@ -1039,7 +1041,7 @@ begin
   end;
 
   if (handle <> 0) and (handle <> INVALID_HANDLE_VALUE) then begin
-    fdi.DeleteFile := DokanFileInfo^.DeleteOnClose;
+    fdi.DeleteFile := DokanFileInfo^.DeletePending;
     if (not SetFileInformationByHandle(handle, FileDispositionInfo, @fdi,
                                     sizeof(FILE_DISPOSITION_INFO))) then begin
       Result := DokanNtStatusFromWin32(GetLastError()); Exit;
@@ -1061,9 +1063,9 @@ begin
   GetFilePath(filePath, DOKAN_MAX_PATH, FileName);
 
   DbgPrint('DeleteDirectory %s - %d\n', [filePath,
-           Byte(DokanFileInfo^.DeleteOnClose)]);
+           Byte(DokanFileInfo^.DeletePending)]);
 
-  if (not DokanFileInfo^.DeleteOnClose) then begin
+  if (not DokanFileInfo^.DeletePending) then begin
     //Dokan notify that the file is requested not to be deleted.
     Result := STATUS_SUCCESS; Exit;
   end;
